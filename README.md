@@ -10,8 +10,6 @@ A SPL(Simple Pascal Language) compiler for compiler course.
 
 #### 1.2 Learn Google's coding specification instruction
 
-#### 1.3 Learn LLVM IR
-
 ### 2
 
 ## Build
