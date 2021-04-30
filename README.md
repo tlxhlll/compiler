@@ -1,6 +1,6 @@
 ## Introduction
 
-A ? compiler for compiler course.
+A SPL(Simple Pascal Language) compiler for compiler course.
 
 ## Timeline
 
