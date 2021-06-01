@@ -1,6 +1,6 @@
 ## Introduction
 
-A SPL(Simple Pascal Language) compiler for compiler course.
+An SPL(Simple Pascal Language) compiler for compiler course.
 
 ## Timeline
 
@@ -10,7 +10,15 @@ A SPL(Simple Pascal Language) compiler for compiler course.
 
 #### 1.2 Learn Google's coding specification instruction
 
-### 2
+#### 1.3 Learn LLVM IR API
+
+### 2 After downloading the syntax rule doc
+
+#### 2.1 Writing lex and yacc(scanner and parser)
+
+#### 2.2 Reviewing knowledge of symbol table and type checking
+
+### 3
 
 ## Build
 
