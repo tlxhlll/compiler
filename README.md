@@ -14,11 +14,15 @@ An SPL(Simple Pascal Language) compiler for compiler course.
 
 ### 2 After downloading the syntax rule doc
 
-#### 2.1 Writing lex and yacc(scanner and parser)
+#### 2.1 Write lex and yacc(scanner and parser)
 
-#### 2.2 Reviewing knowledge of symbol table and type checking
+#### 2.2 Review knowledge of symbol table and type checking
 
-### 3
+#### 2.3 Learn syntax of Pascal
+
+### 3 Last 5 days
+
+#### 3.1 Write the 3 desired test programs
 
 ## Build
 
