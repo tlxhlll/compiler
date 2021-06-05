@@ -2,7 +2,7 @@ program quicksort;
 
 var
     N, i: integer;
-    arr: array [0..100] of integer;
+    arr: array [0..10000] of integer;
 
 procedure sort(front: integer; back: integer);
 var

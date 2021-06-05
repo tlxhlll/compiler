@@ -10,7 +10,6 @@ rm quicksort/*.ll
 rm quicksort/*.bc
 rm quicksort/*.
 
-rm *.ll
-rm *.bc
-rm *.
+rm Others/*.ll
+
 rm *.log

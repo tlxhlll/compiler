@@ -1,13 +1,13 @@
 program matrix;
 
 type
-    base = array [0..19] of integer;
-    longBase = array [0..19] of longint;
+    base = array [0..30] of integer;
+    longBase = array [0..30] of longint;
 
 var
     row1, col1, row2, col2: integer;
-    A, B: array [0..19] of base;
-    C: array [0..19] of longBase;
+    A, B: array [0..30] of base;
+    C: array [0..30] of longBase;
     i, j, k: integer;
 
 begin
