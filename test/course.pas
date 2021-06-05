@@ -1,13 +1,16 @@
 program course;
 
+type
+    base_char = array [0..100] of char;
+
 var
-    input: array [0..200, 0..200] of char;
+    input: array [0..200] of base_char;
     total: integer;
 
-    title: array [0..200, 0..100] of char;
+    title: array [0..200] of base_char;
     len_title: array [0..200] of integer;
     credit: array [0..200] of integer;
-    prereq: array [0..200, 0..100] of char;
+    prereq: array [0..200] of base_char;
     len_prereq: array [0..200] of integer;
     grade: array [0..200] of char;
 
@@ -21,6 +24,8 @@ var
     i: integer;
     j: integer;
     k: integer;
+    flag1: integer;
+    flag2: integer;
 begin
     total := 0;
     attempt_credit := 0;
@@ -35,40 +40,29 @@ begin
         len_title[total] := 0;
         len_prereq[total] := 0;
         i := 0;
-        while input[total][i] <> '\0' do
+        // title
+        while input[total][i] <> '|' do
         begin
-            if input[total][i] <> '|' then
-            begin
-                title[total][len_title[total]] := input[total][i];
-                len_title[total] := len_title[total] + 1;
-            end
-            else
-            begin
-                i := i + 1;
-                break;
-            end;    
+            title[total][len_title[total]] := input[total][i];
+            len_title[total] := len_title[total] + 1;
             i := i + 1;
-        end; 
+        end;
 
+        i := i + 1;
+        // credit
         credit[total] := Ord(input[total][i]) - 48;
         i := i + 2;
 
-        while input[total][i] <> '\0' do
+        // prereq
+        while input[total][i] <> '|' do
         begin
-            if input[total][i] <> '|' then
-            begin
-                prereq[total][len_prereq[total]] := input[total][i];
-                len_prereq[total] := len_prereq[total] + 1;
-            end
-            else
-            begin
-                i := i + 1;
-                break;
-            end;    
+            prereq[total][len_prereq[total]] := input[total][i];
+            len_prereq[total] := len_prereq[total] + 1;
             i := i + 1;
         end; 
-        
 
+        i := i + 1;
+        // grade
         grade[total] := input[total][i];
         if Ord(grade[total]) <> 0 then
             attempt_credit := attempt_credit + credit[total];
@@ -94,13 +88,13 @@ begin
         readln(input[total]);
     end;
 
-    if total_grade = 0 then
+    if total_grade = 0.0 then
         GPA := 0.0
     else
-        GPA := total_grade / attempt_credit;;
+        GPA := total_grade / attempt_credit;
 
     write('GPA: ');
-    writeln(GPA:3:1);
+    writeln(GPA:1);
     write('Hours Attempted: ');
     writeln(attempt_credit);
     write('Hours Completed: ');
@@ -110,7 +104,11 @@ begin
     writeln();
     writeln('Possible Courses to Take Next');
 
-    for i := 0 to total-1 do
+    if remain_credit = 0 then
+        writeln('  None - Congratulation!')
+    else
+    begin
+    for i := 0 to total - 1 do
     begin
         if (Ord(grade[i]) = 0) or (grade[i] = 'F') then
         begin
@@ -121,14 +119,26 @@ begin
             end
             else
             begin
-                for j := 0 to total-1 do
+                j := 0;
+                flag2 := 0;
+                while (j < total) and (flag2 = 0) do
                 begin
-                    for k := 0 to len_prereq[i]-1 do
+                    k := 0;
+                    flag1 := 0;
+                    while (k < len_prereq[i]) and (flag1 = 0) do
+                    begin
                         if title[j][k] <> prereq[i][k] then
-                            break;
-                    if k = len_prereq[i]-1 then
-                        break;
+                            flag1 := 1;
+                        k := k + 1;
+                    end;
+                    if k = len_prereq[i] then
+                        flag2 := 1;
+                    j := j + 1;
                 end;
+                j := j - 1;
+                // writeln(title[i]);
+                // writeln(title[j]);
+                // writeln(grade[j]);
                 if (Ord(grade[j]) <> 0) and (grade[j] <> 'F') then
                 begin
                     write('  ');
@@ -137,5 +147,8 @@ begin
             end;
         end;
     end;
+    end;
+    // readln();
+    // readln();
 
 end.

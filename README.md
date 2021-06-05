@@ -24,6 +24,8 @@ An SPL(Simple Pascal Language) compiler for compiler course.
 
 3.1 Write the 3 desired test programs
 
+3.2 Modify the 3 test programs to adapt to our compiler
+
 ## Build
 
 ## Guideline
