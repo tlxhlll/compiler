@@ -12,4 +12,4 @@ clang ./quicksort/quicksort.bc -o ./quicksort/quicksort.
 
 ../build/spc -ir ./Others/write.pas
 ../build/spc -ir ./Others/rec.pas
-../build/spc -ir ./Others/fib.pas
+../build/spc -ir ./Others/test.pas
