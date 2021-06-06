@@ -30,7 +30,7 @@ An SPL(Simple Pascal Language) compiler for compiler course.
 
 3.4 Debug
 
-3.4.1 incomplete global function
+3.4.1 Incomplete global function
 
 ## Build
 ### Requirements
