@@ -30,6 +30,8 @@ An SPL(Simple Pascal Language) compiler for compiler course.
 
 3.4 Debug
 
+3.4.1 incomplete global function
+
 ## Build
 ### Requirements
 Environment: Linux (Ubuntu 20.04)
@@ -48,4 +50,3 @@ cd ../test
 ./clean.sh
 ./gen.sh
 
-## Guideline
