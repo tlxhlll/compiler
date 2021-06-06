@@ -1,0 +1,54 @@
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+
+project(spc)
+
+cmake_minimum_required(VERSION 3.10)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_BUILD_TYPE Debug)
+
+find_package(BISON REQUIRED)
+find_package(FLEX REQUIRED)
+
+BISON_TARGET(spc_parser
+                ${CMAKE_SOURCE_DIR}/src/parser.y
+                ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
+                COMPILE_FLAGS "--defines=${CMAKE_CURRENT_BINARY_DIR}/parser.hpp --verbose")
+FLEX_TARGET(spc_lexer
+                ${CMAKE_SOURCE_DIR}/src/scanner.l
+                ${CMAKE_CURRENT_BINARY_DIR}/scanner.cpp)
+ADD_FLEX_BISON_DEPENDENCY(spc_lexer spc_parser)
+
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+include_directories(${CMAKE_SOURCE_DIR}/src/ ${CMAKE_BINARY_DIR} ${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+
+
+file(GLOB SOURCE_FILES
+        "src/*.cpp"
+        "src/*.hpp"
+        "src/ast/*.hpp"
+        "src/codeGen/*.hpp"
+        "src/codeGen/*.cpp"
+        )
+
+add_executable(
+        ${CMAKE_PROJECT_NAME}
+        ${SOURCE_FILES}
+        ${FLEX_spc_lexer_OUTPUTS}
+        ${BISON_spc_parser_OUTPUTS}
+        src/ast/ast.hpp src/codeGen/program.cpp src/codeGen/decl.cpp src/codeGen/type.cpp src/codeGen/expr.cpp src/codeGen/identifier.cpp src/codeGen/stmt.cpp)
+target_include_directories(${CMAKE_PROJECT_NAME}
+        PRIVATE
+        .
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${CMAKE_SOURCE_DIR}/src/
+        ${LLVM_INCLUDE_DIRS})
+set_property(TARGET ${CMAKE_PROJECT_NAME}
+        PROPERTY CXX_STANDARD 14)
+
+llvm_map_components_to_libnames(llvm_libs all)
+target_link_libraries(${CMAKE_PROJECT_NAME} ${llvm_libs})
