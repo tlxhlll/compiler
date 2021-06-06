@@ -18,7 +18,7 @@ An SPL(Simple Pascal Language) compiler for compiler course.
 
 2.2 Review knowledge of symbol table and type checking
 
-2.3 Learn syntax of Pascal
+2.3 Learn the syntax of Pascal
 
 ### 3 Last 4 days(6.4-6.7)
 
