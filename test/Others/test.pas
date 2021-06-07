@@ -1,5 +1,8 @@
 program test;
 
+type 
+    int = integer;
+
 var 
     s1 : string;
     s2 : string;
@@ -7,7 +10,7 @@ var
     s4 : string;
     i1 : integer;
     i2 : integer;
-    i3 : integer;
+    i3 : int;
     c1 : char;
 
 function f1():integer;
