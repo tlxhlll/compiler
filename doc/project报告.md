@@ -1,4 +1,4 @@
-![报告_页面_1](D:\tjcFiles\lecture\third2\编译原理\lab3\报告\封面)
+![报告_页面_1](封面)
 
 
 
@@ -25,7 +25,7 @@
   - Flex 2.6.4
   - bison (GNU Bison) 3.5.1
   - LLVM 9.0.1
-- 编辑器：vscode
+- 编辑器：VScode
 
 ### 0.3 文件说明
 
@@ -1502,7 +1502,7 @@ args_list: args_list COMMA expression {
 
 LLVM IR是LLVM的核心所在，通过将不同高级语言的前端变换成LLVM IR进行优化、链接后再传给不同目标的后端转换成为二进制代码，前端、优化、后端三个阶段互相解耦，这种模块化的设计使得LLVM优化不依赖于任何源码和目标机器。
 
-![image-20200531034803706](D:\tjcFiles\lecture\third2\编译原理\lab3\报告\1)
+![image-20200531034803706](1)
 
 #### 3.2.1 IR布局
 
@@ -1512,7 +1512,7 @@ LLVM IR是LLVM的核心所在，通过将不同高级语言的前端变换成LLV
 
 每一个基本块包含了标签和各种指令的集合，标签作为指令的索引用于实现指令间的跳转，指令包含Phi指令、一般指令以及终止指令等。
 
-![image-20200531035534123](D:\tjcFiles\lecture\third2\编译原理\lab3\报告\2)
+![image-20200531035534123](2)
 
 #### 3.2.2 IR上下文环境
 
@@ -1521,7 +1521,7 @@ LLVM IR是LLVM的核心所在，通过将不同高级语言的前端变换成LLV
 
 #### 3.2.3 IR核心类
 
-![image-20200531110455232](D:\tjcFiles\lecture\third2\编译原理\lab3\报告\3)
+![image-20200531110455232](3)
 
 - llvm::Value表示一个类型的值，具有一个llvm::Type*成员和一个use list，前者指向值的类型类，后者跟踪使用了该值的其他对象，可以通过迭代器进行访问。
 
@@ -1680,3 +1680,237 @@ std::string output;
 ```
 
 ## 第六章 测试案例
+
+### 6.1 快速排序
+
+#### 6.1.1 题目要求
+
+输入N个数，将其从小到大排序，输出排序后的N个数（详见验收细则）。
+
+#### 6.1.2 实现思路
+
+第一步，通过for循环和readln系统函数读入N个数，使用一维整型数组保存；
+第二部，通过调用sort子过程将N个数排序；
+第三部，通过for循环和writeln系统函数输出N个数。
+
+#### 6.1.3 实现细节
+
+核心在于递归实现的快速排序算法——sort子过程。算法可以分为3步：
+第一步，将front和back之间的数字分为3个组成部分：[小于pivot的数，pivot，大于pivot的数]；
+第二步，对小于pivot的数再次调用sort子过程；
+第三步，对大于pivot的数再次调用sort子过程。
+
+sort子过程代码如下：
+
+```c++
+procedure sort(front: integer; back: integer);
+var
+    pivotValue: integer;
+    pivotPosition: integer;
+    pos: integer;
+    temp: integer;
+begin
+    if front < back then
+    begin
+        pivotValue := arr[front];
+        pivotPosition := front;
+        for pos := front+1 to back do
+            begin
+                if arr[pos] < pivotValue then
+                begin
+                    // swap(arr[pivotPosition+1], arr[pos]);
+                    temp := arr[pos];
+                    arr[pos] := arr[pivotPosition+1];
+                    arr[pivotPosition+1] := temp;
+                    
+                    // swap(arr[pivotPosition], arr[pivotPosition+1]);
+                    temp := arr[pivotPosition+1];
+                    arr[pivotPosition+1] := arr[pivotPosition];
+                    arr[pivotPosition] := temp;
+
+                    pivotPosition := pivotPosition + 1;
+                end; 
+            end;
+        sort(front, pivotPosition - 1);
+        sort(pivotPosition + 1, back);
+    end;
+end;
+```
+
+#### 6.1.4 测试结果
+
+![](4)
+
+
+### 6.2 矩阵乘法
+
+#### 6.2.1 题目要求
+
+输入矩阵的行数M和列数N，然后按照矩阵形状输入M*N个数，第二个矩阵的输入与此相同。计算两个矩阵的乘积，最后将乘积矩阵输出（详见验收细则）。
+
+#### 6.2.2 实现思路
+
+第一步，通过for循环、read系统函数和readln系统函数读入矩阵数据，使用二维整型数组保存；
+第二步，通过三层for循环嵌套计算乘积矩阵；
+第三部，通过两层for循环嵌套输出乘积矩阵。
+
+#### 6.2.3 实现细节
+
+计算乘积的部分代码如下：
+
+```c++
+if col1 <> row2 then
+        writeln('Incompatible Dimensions')
+    else
+    begin
+        for i := 0 to row1-1 do
+            for j := 0 to col2-1 do
+                C[i, j] := 0;
+        for i := 0 to row1-1 do
+            for j := 0 to col2-1 do
+                for k := 0 to row2-1 do
+                    C[i, j] := C[i, j] + A[i, k] * B[k, j];
+
+        for i := 0 to row1-1 do
+        begin
+            for j := 0 to col2-1 do
+                write(C[i][j]:10);
+            writeln();
+        end;
+    end;
+```
+
+#### 6.2.4 测试结果
+
+![](5)
+
+
+### 6.3 选课助手
+
+#### 6.3.1 题目要求
+
+每行按照(课程名称,学分,前置课程,成绩)的格式输入，计算GPA、尝试学分、已修学分、剩余学分、推荐课程并输出。值得注意的是，前置课程中可能会输入该培养方案从未出现过的课程，即修读了专业培养方案之外的课程，此时应该将其计入GPA，但是在计算推荐课程时视为从未修读该培养方案之外的课程。
+
+#### 6.3.2 实现思路
+
+第一步，通过while循环和readln系统函数读入每一行课程的四元组并分别存储到对应数据结构中，其中课程名称为二维字符数组、学分为一维整型数组、预置课程为三维字符数组、成绩为一维字符数组；
+第二步，计算GPA、尝试学分、已修学分、剩余学分；
+第三步，在所有课程中检测每一个前置课程是否已经取得学分，如果前置课程都已经取得学分而本课程尚未取得，则推荐本课程。
+
+#### 6.3.3 实现细节
+
+判断推荐课程的部分代码如下：
+```c++
+if remain_credit = 0 then
+        writeln('  None - Congratulations!')
+    else
+    begin
+    for i := 0 to total do
+    begin
+        if (Ord(grade[i]) = 0) or (grade[i] = 'F') then
+        begin
+            if Ord(prereq_all[i][0]) = 0 then
+            begin
+                write('  ');
+                writeln(title[i]);                        
+            end
+            else
+            begin
+                // initialize len
+                len_group := 0;
+                for j := 0 to 100 do
+                begin
+                    len_ind[j] := 0;
+                    for k := 0 to 100 do
+                    begin
+                        len_name[j][k] := 0;
+                        for l := 0 to 100 do
+                            prereq_each[j][k][l] := chr(0);
+                    end;    
+                end;
+
+                // acquire prereq_each
+                for j := 0 to len_prereq[i] do
+                begin
+                    if prereq_all[i][j] = ',' then
+                    begin
+                        len_ind[len_group] := len_ind[len_group] + 1;
+                    end
+                    else if prereq_all[i][j] = ';' then
+                    begin
+                        len_group := len_group + 1;
+                    end
+                    else
+                    begin
+                        prereq_each[len_group][len_ind[len_group]][len_name[len_group][len_ind[len_group]]] := prereq_all[i][j];
+                        len_name[len_group][len_ind[len_group]] := len_name[len_group][len_ind[len_group]] + 1;
+                    end;
+                end;
+
+                // find prereq_each in all the titles
+                l := 0;
+                flag5 := 0;
+                // iterate in all groups to get a group
+                while (l < len_group + 1) and (flag5 = 0) do
+                begin
+                    m := 0;
+                    flag4 := 0;
+                    flag3 := 0;
+                    acc := 0;
+                    // iterate in a single group to get a prereq_each
+                    while (m < len_ind[l] + 1) and (flag4 = 0) and (flag3 = 0) do
+                    begin
+                        j := 0;
+                        flag2 := 0;
+                        // iterate in all titles to get a title
+                        while (j < total + 1) and (flag2 = 0) do
+                        begin
+                            k := 0;
+                            flag1 := 0;
+                            // iterate in a title to tell if match
+                            while (k < len_name[l][m]) and (flag1 = 0) do
+                            begin
+                                if title[j][k] <> prereq_each[l][m][k] then
+                                    flag1 := 1;
+                                k := k + 1;
+                            end;
+                            // prereq_each matches the title
+                            if k = len_name[l][m] then
+                                flag2 := 1;
+                            j := j + 1;
+                        end;
+                        // no match
+                        if flag2 = 0 then
+                            flag3 := 1
+                        else
+                        begin
+                            j := j - 1;
+                            if (Ord(grade[j]) <> 0) and (grade[j] <> 'F') then
+                            begin
+                                acc := acc + 1;
+                                // all individuals in a group have passed
+                                if acc = len_ind[l] + 1 then
+                                    flag4 := 1;
+                            end;
+                        end;
+                        m := m + 1;
+                    end;
+                    if flag4 = 1 then
+                    begin
+                        write('  ');
+                        writeln(title[i]);
+                        flag5 := 1;
+                    end;
+                    l := l + 1;
+                end;
+            end;
+        end;
+    end;
+    end;
+```
+
+#### 6.3.4 测试结果
+
+<img src="./6" align=left/> 
+
+
