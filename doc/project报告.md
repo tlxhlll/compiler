@@ -1625,13 +1625,265 @@ std::unique_ptr<llvm::Module> _module;//顶级容器
             getcharFunc->setCallingConv(llvm::CallingConv::C);
 ```
 
-#### 3.3.2 
+#### 3.3.2 各子类CodeGen方法
 
-（此处重点是codeGen文件夹中各个cpp文件中的codegen）
+在每个节点类中，我们定义了各自的codegen方法用来生成对应的中间代码
 
-## 第四章 优化考虑
+因为代码总量较大，在这里我们仅展示部分代码
 
-（）
+* ProgramNode部分
+
+```C++
+    llvm::Value *ProgramNode::codegen(CodegenContext &context)
+    {
+        context.is_subroutine = false;
+        context.log() << "Entering main program" << std::endl;
+        auto *funcT = llvm::FunctionType::get(context.getBuilder().getInt32Ty(), false);
+        auto *mainFunc = llvm::Function::Create(funcT, llvm::Function::ExternalLinkage, "main", *context.getModule());
+        auto *block = llvm::BasicBlock::Create(context.getModule()->getContext(), "entry", mainFunc);
+        context.getBuilder().SetInsertPoint(block);
+
+        context.log() << "Entering global const part" << std::endl;
+        header->constList->codegen(context);
+        context.log() << "Entering global type part" << std::endl;
+        header->typeList->codegen(context);
+        context.log() << "Entering global var part" << std::endl;
+        header->varList->codegen(context);
+        context.is_subroutine = true;
+        context.log() << "Entering global routine part" << std::endl;
+        header->subroutineList->codegen(context);
+        context.is_subroutine = false;
+
+        context.getBuilder().SetInsertPoint(block);
+        context.log() << "Entering global body part" << std::endl;
+        body->codegen(context);
+        context.getBuilder().CreateRet(context.getBuilder().getInt32(0));
+
+        llvm::verifyFunction(*mainFunc, &llvm::errs());
+
+        // Optimizations
+        if (context.fpm)
+            context.fpm->run(*mainFunc);
+        if (context.mpm)
+            context.mpm->run(*context.getModule());
+        return nullptr;
+    }
+```
+
+
+
+* RoutineNode部分
+
+  ```C++
+  llvm::Value *RoutineNode::codegen(CodegenContext &context)
+      {
+          context.log() << "Entering function " + name->name << std::endl;
+  
+          if (context.getModule()->getFunction(name->name) != nullptr)
+              throw CodegenException("Duplicate function definition: " + name->name);
+  
+          context.traces.push_back(name->name);
+  
+          std::vector<llvm::Type *> types;
+          std::vector<std::string> names;
+          for (auto &p : params->getChildren()) 
+          {
+              auto *ty = p->type->getLLVMType(context);
+              if (ty == nullptr)
+                  throw CodegenException("Unsupported function param type");
+              types.push_back(ty);
+              names.push_back(p->name->name);
+              if (ty->isArrayTy())
+              {
+                  if (p->type->type == Type::String)
+                      context.setArrayEntry(name->name + "." + p->name->name, 0, 255);
+                  else if (p->type->type == Type::Array)
+                  {
+                      auto arrTy = cast_node<ArrayTypeNode>(p->type);
+                      assert(arrTy != nullptr);
+                      context.setArrayEntry(name->name + "." + p->name->name, arrTy);
+                      arrTy->insertNestedArray(name->name + "." + p->name->name, context);
+                  }
+                  else if (p->type->type == Type::Alias)
+                  {
+                      std::string aliasName = cast_node<AliasTypeNode>(p->type)->name->name;
+                      std::shared_ptr<ArrayTypeNode> a;
+                      for (auto rit = context.traces.rbegin(); rit != context.traces.rend(); rit++)
+                          if ((a = context.getArrayAlias(*rit + "." + aliasName)) != nullptr)
+                              break;
+                      if (a == nullptr) a = context.getArrayAlias(aliasName);
+                      assert(a != nullptr && "Fatal error: array type not found!");
+                      context.setArrayEntry(name->name + "." + p->name->name, a);
+                      a->insertNestedArray(name->name + "." + p->name->name, context);
+                  }
+              }
+              else if (ty->isStructTy())
+              {
+                  assert(is_ptr_of<RecordTypeNode>(p->type) || is_ptr_of<AliasTypeNode>(p->type));
+                  if (is_ptr_of<RecordTypeNode>(p->type))
+                  {
+                      auto recTy = cast_node<RecordTypeNode>(p->type);
+                      context.setRecordAlias(name->name + "." + p->name->name, recTy);
+                      recTy->insertNestedRecord(name->name + "." + p->name->name, context);
+                  }
+                  else
+                  {
+                      std::string aliasName = cast_node<AliasTypeNode>(p->type)->name->name;
+                      std::shared_ptr<RecordTypeNode> recTy = nullptr;
+                      for (auto rit = context.traces.rbegin(); rit != context.traces.rend(); rit++)
+                      {
+                          if ((recTy = context.getRecordAlias(*rit + "." + aliasName)) != nullptr)
+                              break;
+                      }
+                      if (recTy == nullptr) recTy = context.getRecordAlias(aliasName);
+                      if (recTy == nullptr) assert(0);
+                      context.setRecordAlias(name->name + "." + p->name->name, recTy);
+                      recTy->insertNestedRecord(name->name + "." + p->name->name, context);
+                  }
+              }
+          }
+          llvm::Type *retTy = this->retType->getLLVMType(context);
+          if (retTy == nullptr) throw CodegenException("Unsupported function return type");
+          if (retTy->isArrayTy())
+          {
+              if (!retTy->getArrayElementType()->isIntegerTy(8) || retTy->getArrayNumElements() != 256)
+                  throw CodegenException("Not support array as function return type");
+              retTy = context.getBuilder().getInt8PtrTy();
+              context.setArrayEntry(name->name + "." + name->name, 0, 255);
+          }
+          else if (retTy->isStructTy())
+          {
+              assert(is_ptr_of<RecordTypeNode>(this->retType) || is_ptr_of<AliasTypeNode>(this->retType));
+              if (is_ptr_of<RecordTypeNode>(this->retType))
+              {
+                  auto recTy = cast_node<RecordTypeNode>(this->retType);
+                  context.setRecordAlias(name->name + "." + name->name, recTy);
+                  recTy->insertNestedRecord(name->name + "." + name->name, context);
+              }
+              else
+              {
+                  std::string aliasName = cast_node<AliasTypeNode>(this->retType)->name->name;
+                  std::shared_ptr<RecordTypeNode> recTy = nullptr;
+                  for (auto rit = context.traces.rbegin(); rit != context.traces.rend(); rit++)
+                  {
+                      if ((recTy = context.getRecordAlias(*rit + "." + aliasName)) != nullptr)
+                          break;
+                  }
+                  if (recTy == nullptr) recTy = context.getRecordAlias(aliasName);
+                  if (recTy == nullptr) assert(0);
+                  context.setRecordAlias(name->name + "." + name->name, recTy);
+                  recTy->insertNestedRecord(name->name + "." + name->name, context);
+              }
+          }
+          auto *funcTy = llvm::FunctionType::get(retTy, types, false);
+          auto *func = llvm::Function::Create(funcTy, llvm::Function::ExternalLinkage, name->name, *context.getModule());
+          auto *block = llvm::BasicBlock::Create(context.getModule()->getContext(), "entry", func);
+          context.getBuilder().SetInsertPoint(block);
+  
+          auto index = 0;
+          for (auto &arg : func->args())
+          {
+              auto *type = arg.getType();
+              auto *local = context.getBuilder().CreateAlloca(type);
+              context.setLocal(name->name + "." + names[index++], local);
+              context.getBuilder().CreateStore(&arg, local);
+          }
+  
+          context.log() << "Entering const part of function " << name->name << std::endl;
+          header->constList->codegen(context);
+          context.log() << "Entering type part of function " << name->name << std::endl;
+          header->typeList->codegen(context);
+          context.log() << "Entering var part of function " << name->name << std::endl;
+          header->varList->codegen(context);
+  
+          context.log() << "Entering routine part of function " << name->name << std::endl;
+          header->subroutineList->codegen(context);
+  
+          context.getBuilder().SetInsertPoint(block);
+          if (retType->type != Type::Void)  // set the return variable
+          {  
+              auto *type = retType->getLLVMType(context);
+  
+              llvm::Value *local;
+              if (type == nullptr) throw CodegenException("Unknown function return type");
+              else if (type->isArrayTy())
+              {
+                  if (type->getArrayElementType()->isIntegerTy(8) && type->getArrayNumElements() == 256) // String
+                  {
+                      local = context.getBuilder().CreateAlloca(type);
+                  }
+                  else
+                      throw CodegenException("Unknown function return type");
+              }
+              else
+                  local = context.getBuilder().CreateAlloca(type);
+              assert(local != nullptr && "Fatal error: Local variable alloc failed!");
+              context.setLocal(name->name + "." + name->name, local);
+          }
+  
+          context.log() << "Entering body part of function " << name->name << std::endl;
+          body->codegen(context);
+  
+          if (retType->type != Type::Void) 
+          {
+              auto *local = context.getLocal(name->name + "." + name->name);
+              llvm::Value *ret = context.getBuilder().CreateLoad(local);
+              if (ret->getType()->isArrayTy())
+              {
+                  llvm::Value *tmpStr = context.getTempStrPtr();
+                  llvm::Value *zero = llvm::ConstantInt::get(context.getBuilder().getInt32Ty(), 0, false);
+                  llvm::Value *retPtr = context.getBuilder().CreateInBoundsGEP(local, {zero, zero});
+                  context.log() << "\tSysfunc STRCPY" << std::endl;
+                  context.getBuilder().CreateCall(context.strcpyFunc, {tmpStr, retPtr});
+                  context.log() << "\tSTRING return" << std::endl;
+                  context.getBuilder().CreateRet(tmpStr);
+              }
+              else
+                  context.getBuilder().CreateRet(ret);
+          } 
+          else 
+          {
+              context.getBuilder().CreateRetVoid();
+          }
+  
+          llvm::verifyFunction(*func, &llvm::errs());
+  
+          if (context.fpm)
+              context.fpm->run(*func);
+  
+          context.traces.pop_back();  
+  
+          context.log() << "Leaving function " << name->name << std::endl;
+  
+          return nullptr;
+      }
+  ```
+
+
+
+## 第四章 语法树
+
+### 4.1 语法树生成实例
+
+复杂代码的语法树会非常巨大而难以展示，因此在此处我们用一个简单的加法样例来展示我们的语法树。
+
+* 代码：
+
+```pascal
+program add ;
+	var a , b : integer ;
+	
+begin
+	read (a , b ) ;
+	writeln (a + b ) ;
+end .
+```
+
+* 语法树：
+
+
+
+<img src="D:/Documents/Tencent Files/258161597/FileRecv/报告/报告/生成树-1.png" alt="语法树" style="zoom:100%;" />
 
 ## 第五章 代码生成
 
@@ -1912,5 +2164,89 @@ if remain_credit = 0 then
 #### 6.3.4 测试结果
 
 <img src="./6" align=left/> 
+
+
+
+## 第七章 进阶主题
+
+### 7.1 结构体的实现
+
+#### 简介 
+
+在本次实验中我们实现了结构体(record)，在编译器中的定义方法如下：
+
+```pascal
+  rec = record
+    ia: integer;
+    ic: string;
+    ie: real;
+    ...
+  end;
+```
+
+record的成员可以是所有类型，包含数组和record以及其他的重命名变量
+
+#### 实现部分
+
+* 设计
+
+  我们用VarDeclNode的列表作为Record的私有成员，而VarDeclNode是所有类型类的父类，可以挂载所有类型的指针。
+
+* 代码
+
+```c++
+    class RecordTypeNode: public TypeNode
+    {
+    private:
+        std::list<std::shared_ptr<VarDeclNode>> field;
+    public:
+        RecordTypeNode(const std::shared_ptr<IdentifierList> &names, const std::shared_ptr<TypeNode> &type)
+            : TypeNode(Type::Record)
+        {
+            for (auto &id : names->getChildren())
+            {
+                field.push_back(make_node<VarDeclNode>(id, type));
+            }
+        }
+        ~RecordTypeNode() = default;
+        
+        void append(const std::shared_ptr<VarDeclNode> &var);
+        void merge(const std::shared_ptr<RecordTypeNode> &rhs);
+        void merge(std::shared_ptr<RecordTypeNode> &&rhs);
+        llvm::Type *getLLVMType(CodegenContext &context) override;
+        llvm::Value *getFieldIdx(const std::string &name, CodegenContext &context);
+        friend class CodegenContext;
+    };
+```
+
+
+
+### 7.2 函数的嵌套定义
+
+#### 简介
+
+根据我们使用的SPL语法树，我们的编译器可以嵌套定义函数
+
+#### 样例
+
+* 代码
+
+```pascal
+function f1():integer;
+    function f2():integer;
+    begin
+        f2 := 4;
+    end;
+begin
+    f1 := f2() + 1;
+end;
+```
+
+* 测试
+
+  详见test/others
+
+
+
 
 
