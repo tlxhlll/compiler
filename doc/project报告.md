@@ -2219,9 +2219,53 @@ record的成员可以是所有类型，包含数组和record以及其他的重�
     };
 ```
 
+#### 测试
+
+详见test/Others/rec.pas
 
 
-### 7.2 函数的嵌套定义
+
+### 7.2 重命名
+
+#### 简介
+
+我们可以在定义部分对类型进行重命名操作，在编译器中定义方法如下：
+
+```pascal
+type 
+    int = integer;
+
+var 
+    i1 : int;
+```
+
+#### 实现部分
+
+* 设计
+
+  在重命名类中添加被重命名类型的对象成员，在使用该重命名对象时直接调用
+
+* 代码
+
+```c++
+    class AliasTypeNode: public TypeNode   //重命名类型
+    {
+    public:
+        std::shared_ptr<IdentifierNode> name; //重命名的类型名
+        AliasTypeNode(const std::shared_ptr<IdentifierNode> &name)
+            : TypeNode(Type::Alias), name(name) {}
+        ~AliasTypeNode() = default;
+        llvm::Type *getLLVMType(CodegenContext &context) override;
+    };
+```
+
+#### 测试
+
+详见test/Others/test.pas
+
+
+
+### 7.3 函数的嵌套定义
 
 #### 简介
 
@@ -2244,7 +2288,7 @@ end;
 
 * 测试
 
-  详见test/others
+  详见test/Others/test.pas
 
 
 
