@@ -14,21 +14,15 @@ namespace spc
         std::shared_ptr<ConstDeclList> constList;  //常量列表
         std::shared_ptr<VarDeclList> varList;      //变量列表
         std::shared_ptr<TypeDeclList> typeList;    //类型列表
-        std::shared_ptr<RoutineList> routineList; //子过程列表
-        std::shared_ptr<int> x1;
-        std::shared_ptr<int> x2;
-        std::shared_ptr<std::string> x3;
+        std::shared_ptr<RoutineList> subroutineList; //子过程列表
     public:
         RoutineHeadNode(
             const std::shared_ptr<ConstDeclList> &constList,
             const std::shared_ptr<VarDeclList> &varList,
             const std::shared_ptr<TypeDeclList> &typeList,
-            const std::shared_ptr<RoutineList> &routineList
-            std::shared_ptr<int> x1;
-            std::shared_ptr<int> x2;
-            std::shared_ptr<std::string> x3;
+            const std::shared_ptr<RoutineList> &subroutineList
             )
-            : constList(constList), varList(varList), typeList(typeList), routineList(routineList),x1(x1),x2(x2),x3(x3) {}
+            : constList(constList), varList(varList), typeList(typeList), subroutineList(subroutineList) {}
         ~RoutineHeadNode() = default;
 
         llvm::Value *codegen(CodegenContext &) override { return nullptr; } //代码生成
@@ -43,14 +37,9 @@ namespace spc
         std::shared_ptr<IdentifierNode> name;  //函数名
         std::shared_ptr<RoutineHeadNode> header; //函数头
         std::shared_ptr<CompoundStmtNode> body; //函数体
-        std::shared_ptr<IdentifierNode> ass;  //函数名
-        std::shared_ptr<RoutineHeadNode> bss; //函数头
-        std::shared_ptr<CompoundStmtNode> css; //函数体
     public:
-        BaseRoutineNode(const std::shared_ptr<IdentifierNode> &name, const std::shared_ptr<RoutineHeadNode> &header, const std::shared_ptr<CompoundStmtNode> &body,std::shared_ptr<IdentifierNode> ass;  //函数名
-        std::shared_ptr<RoutineHeadNode> bss; //函数头
-        std::shared_ptr<CompoundStmtNode> css; //函数体)
-            : name(name), header(header), body(body),ass(ass),bss(bss),css(css) {}
+        BaseRoutineNode(const std::shared_ptr<IdentifierNode> &name, const std::shared_ptr<RoutineHeadNode> &header, const std::shared_ptr<CompoundStmtNode> &body)
+            : name(name), header(header), body(body) {}
         ~BaseRoutineNode() = default;
 
         std::string getName() const { return name->name; } //返回函数名
@@ -85,9 +74,6 @@ namespace spc
         std::shared_ptr<ParamList> getparams(){  //返回变量
             return this->params;
         }
-         std::shared_ptr<TypeNode> getretType(){  //返回return值
-            return std::shared_ptr<TypeNode>();
-        }
     };
 
     class RoutineNode: public BaseRoutineNode
@@ -104,10 +90,10 @@ namespace spc
             const std::shared_ptr<TypeNode> &retType
             )
             : BaseRoutineNode(name, header, body), params(params), retType(retType) {}
-        RoutineNode(
+        /*RoutineNode(
             std::shared_ptr<RoutineProc> node
             )
-            : BaseRoutineNode(node->getname(),node->getheader(),node->getbody()), params(node->getparams()), retType(node->getretType()) {}
+            : BaseRoutineNode(node->getname(),node->getheader(),node->getbody()), params(node->getparams()), retType(node->getretType()) {}*/
         ~RoutineNode() = default;
 
         llvm::Value *codegen(CodegenContext &) override;
@@ -129,7 +115,14 @@ namespace spc
         }
     };
 
+    class ProgramNode: public BaseRoutineNode  //作为program的初始结点，不保存任何类型信息
+    {
+    public:
+        using BaseRoutineNode::BaseRoutineNode;
+        ~ProgramNode() = default;
 
+        llvm::Value *codegen(CodegenContext &) override;
+    };   
 
 } // namespace spc
 
